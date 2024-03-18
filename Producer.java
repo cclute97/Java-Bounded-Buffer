@@ -27,7 +27,6 @@ public class Producer implements Runnable {
 
     public void stop() {
         running = false;
-        buffer.notifyIsNotFull(); // ensures that all waiting threads terminate
     }
 
     public void produce() {
@@ -35,23 +34,17 @@ public class Producer implements Runnable {
             if (productionCount % 100000 == 0 && productionCount != 0) {
                 System.out.printf("Producer: Generated %d items, Cumulative value of consumed items=%.3f\n", productionCount, totalProductionSum);
                 if (productionCount == PRODUCTION_LIMIT) {
+                    System.out.printf("Producer: Finished generating %d items\n", productionCount);
                     running = false;
                 }
             }
 
-            if (buffer.isFull()) {
-                try {
-                    buffer.waitUntilNotFull();
-                } catch (InterruptedException e) {
-                    System.out.println(e.getMessage());
-                    break;
-                }
-            }
-
-            if (!running) {
+            try {
+                buffer.addAndNotify(generateNextElement());
+            } catch (InterruptedException e) {
+                System.out.println(e.getMessage());
                 break;
             }
-            buffer.addAndNotify(generateNextElement());
         }
     }
 

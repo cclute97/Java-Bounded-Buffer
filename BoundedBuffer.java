@@ -1,94 +1,78 @@
 
-import java.util.LinkedList;
-import java.util.Queue;
-
 public class BoundedBuffer {
     private final short MAX_SIZE;
-
-    // References used for synchronization only
-    private final Object IS_NOT_FULL = new Object(); 
-    private final Object IS_NOT_EMPTY = new Object();
-
-    private Queue<Double> buffer; 
+    private final Double[] buffer;
+    private int frontIndex;
+    private int backIndex;
+    private short size;
 
     public BoundedBuffer(short max) {
-        buffer = new LinkedList<>();
+        buffer = new Double[max];
+        frontIndex = 0;
+        backIndex = -1;
+        size = 0;
         MAX_SIZE = max;
     }
 
-    /* The producer uses waitUntilNotFull to wait for the consumer to consume from the buffer and the consumer notifies the producer that the buffer 
-     * is not full with notifyIsNotFull */
-
-    public void waitUntilNotFull() throws InterruptedException {
-        synchronized (IS_NOT_FULL) {
-            IS_NOT_FULL.wait();
-        }
+    public void add(Double element) {
+        int index = (backIndex + 1) % MAX_SIZE;
+        size++;
+        buffer[index] = element;
+        backIndex++;
     }
 
-    public void notifyIsNotFull() {
-        synchronized (IS_NOT_FULL) {
-            IS_NOT_FULL.notify();
-        }
+    public Double remove() {
+        int index = frontIndex % MAX_SIZE;
+        Double element = buffer[index];
+        frontIndex++;
+        size--;
+        return element;
     }
 
-    /* The consumer uses waitUntilNotEmpty to wait for the producer to produce to the buffer and the producer notifies the consumer that the buffer 
-     * is not empty with notifyIsNotEmpty */
-
-    public void waitUntilNotEmpty() throws InterruptedException {
-        synchronized (IS_NOT_EMPTY) {
-            IS_NOT_EMPTY.wait();
-        }
-    }
-
-    public void notifyIsNotEmpty() {
-        synchronized (IS_NOT_EMPTY) {
-            IS_NOT_EMPTY.notify();
-        }
-    }
-
-    /* Producer uses add(), Consumer uses remove() */
-
-    public void addAndNotify(Double element) {
+    public void addAndNotify(Double element) throws InterruptedException {
         try {
             synchronized (this) {
-                while (buffer.size() == 1000) {
+                while (size == 1000) {
                     wait();
                 }
-                buffer.add(element);
-                notifyIsNotEmpty();
+                this.add(element);
+                notify();
             }
         } catch (InterruptedException e) {
-            System.out.println(e.getMessage());
+            throw e;
         }
     }
 
-    public Double removeAndNotify() {
+    public Double removeAndNotify() throws InterruptedException {
         try {
             synchronized (this) {
-                while (buffer.size() == 0) {
+                while (size == 0) {
                     wait();
                 }
-                Double element = buffer.poll();
-                notifyIsNotFull();
+                Double element = this.remove();
+                notify();
                 return element;
             }
         } catch (InterruptedException e) {
-            System.out.println(e.getMessage());
+            throw e;
         }
-        return 0.0;
     }
 
     public boolean isFull() {
-        if (buffer.size() == MAX_SIZE) {
+        if (size == MAX_SIZE) {
             return true;
         }
         return false;
     }
 
     public boolean isEmpty() {
-        if (buffer.size() == 0) {
+        if (size == 0) {
             return true;
         }
         return false;
+    }
+
+    public short size() {
+        return size;
     }
 }

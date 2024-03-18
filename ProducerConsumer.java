@@ -1,5 +1,4 @@
 
-
 public class ProducerConsumer {
 
     public static void main(String[] args) throws InterruptedException {
@@ -14,8 +13,6 @@ public class ProducerConsumer {
         producerThread.start();
         consumerThread.start();
 
-        //producer.stop();
-        //consumer.stop();
     }
 
 }

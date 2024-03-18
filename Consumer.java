@@ -1,5 +1,4 @@
 
-
 public class Consumer implements Runnable {
     private final int CONSUMPTION_LIMIT = 1000000; // 1 million
     private int consumptionCount;
@@ -22,34 +21,25 @@ public class Consumer implements Runnable {
 
     public void stop() {
         running = false;
-        buffer.notifyIsNotEmpty(); // ensures that all waiting threads terminate
     }
 
     public void consume() {
         while (running) {
-            //System.out.printf("Count=%d -- Sum=%.3f\n", consumptionCount, totalConsumptionSum); // TEST// 
             if (consumptionCount % 100000 == 0 && consumptionCount != 0) {
                 System.out.printf("Consumer: Consumed %d items, Cumulative value of consumed items=%.3f\n", consumptionCount, totalConsumptionSum);
                 if (consumptionCount == CONSUMPTION_LIMIT) {
+                    System.out.printf("Consumer: Finished consuming %d items\n", consumptionCount);
                     running = false;
                 }
             }
 
-            if (buffer.isEmpty()) {
-                try {
-                    buffer.waitUntilNotEmpty();
-                } catch (InterruptedException e) {
-                    System.out.println(e.getMessage());
-                    break;
-                }
-            }
-
-            if (!running) {
+            try {
+                consumeNextElement(buffer.removeAndNotify());
+            } catch (InterruptedException e) {
+                System.out.println(e.getMessage());
                 break;
             }
-            consumeNextElement(buffer.removeAndNotify());
         }
-
     }
 
     public void consumeNextElement(Double element) {
